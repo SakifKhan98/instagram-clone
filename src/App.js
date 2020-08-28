@@ -1,10 +1,124 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import Post from "./Post";
+import { db, auth } from "./firebase";
+import { makeStyles } from "@material-ui/core/styles";
+import { Modal, Button, Input } from "@material-ui/core";
+
+function getModalStyle() {
+  const top = 50;
+  const left = 50;
+
+  return {
+    top: `${top}%`,
+    left: `${left}%`,
+    transform: `translate(-${top}%, -${left}%)`,
+  };
+}
+
+const useStyles = makeStyles((theme) => ({
+  paper: {
+    position: "absolute",
+    width: 400,
+    backgroundColor: theme.palette.background.paper,
+    border: "2px solid #000",
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
+  },
+}));
 
 function App() {
+  const classes = useStyles();
+  const [modalStyle] = useState(getModalStyle);
+
+  const [posts, setPosts] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((authUser) => {
+      if (authUser) {
+        //user has logged in..
+        console.log(authUser);
+        setUser(authUser);
+      } else {
+        //user has logged out...
+        setUser(null);
+      }
+    });
+
+    return () => {
+      //perform some cleanup actions
+      unsubscribe();
+    };
+  }, [user, username]);
+
+  useEffect(() => {
+    //this
+    db.collection("posts").onSnapshot((snapshot) => {
+      setPosts(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          post: doc.data(),
+        }))
+      );
+    });
+  }, []);
+
+  const signUp = (event) => {
+    event.preventDefault();
+    auth
+      .createUserWithEmailAndPassword(email, password)
+      .then((authUser) => {
+        return authUser.user.updateProfile({
+          displayName: username,
+        });
+      })
+      .catch((error) => alert(error.message));
+  };
+
   return (
     <div className="app">
+      <Modal open={open} onClose={() => setOpen(false)}>
+        <div style={modalStyle} className={classes.paper}>
+          <form className="app__signup">
+            {" "}
+            <center>
+              <div className="app__header">
+                <img
+                  className="app__headerImage"
+                  src="https://www.instagram.com/static/images/web/mobile_nav_type_logo.png/735145cfe0a4.png"
+                  alt=""
+                />
+              </div>
+            </center>
+            <Input
+              placeholder="username"
+              type="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            ></Input>
+            <Input
+              placeholder="email"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            ></Input>
+            <Input
+              placeholder="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            ></Input>
+            <Button type="submit" onClick={signUp}>
+              Signup
+            </Button>
+          </form>
+        </div>
+      </Modal>
       <div className="app__header">
         <img
           className="app__headerImage"
@@ -13,24 +127,18 @@ function App() {
         />
       </div>
 
+      <Button onClick={() => setOpen(true)}>Sign Up</Button>
+
       {/* Posts */}
-      <Post
-        username="cleverQazi"
-        imageUrl="https://wallpapercave.com/wp/wp4923981.jpg"
-        caption="wow! It Works..!"
-      ></Post>
 
-      <Post
-        username="ssssAghna"
-        imageUrl="https://images.unsplash.com/photo-1598432908102-ce6767f7a264?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=891&q=80"
-        caption="This is really Dope!"
-      ></Post>
-
-      <Post
-        username="amaanath"
-        imageUrl="https://images.unsplash.com/photo-1558980394-4c7c9299fe96?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=750&q=80"
-        caption="Great to see that people are working on this build"
-      ></Post>
+      {posts.map(({ id, post }) => (
+        <Post
+          key={id}
+          username={post.username}
+          caption={post.caption}
+          imageUrl={post.imageUrl}
+        ></Post>
+      ))}
 
       {/* Posts */}
     </div>
