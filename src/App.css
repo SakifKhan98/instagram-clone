@@ -8,7 +8,26 @@
 .app__header {
   background-color: white;
   padding: 20px;
+  z-index: 1;
   border-bottom: 1px solid lightgray;
+  object-fit: contain;
+  display: flex;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+}
+
+.app__posts {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.app__postsRight {
+  margin-left: 20px;
+}
+
+.app__headerImage {
   object-fit: contain;
 }
 
